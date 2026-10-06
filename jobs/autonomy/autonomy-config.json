@@ -1,0 +1,47 @@
+{
+  "_doc": "Mimir autonomy loop config (spec 09 §7.1, task_triage at PROPOSE). The JUDGMENT is deterministic and lives here: the subject-domain -> TaskWarrior-project map, the daily cap, the stale threshold. NO LLM. Tuning needs no code change. Endpoints are overridable so the tools stay host-portable.",
+
+  "domain": "task_triage",
+  "producer_source": "autonomy-task-triage",
+
+  "sources": ["plaud", "claude"],
+  "_provenance_doc": "provenance = min(producer, item source). The producer (systemd, owner infra) is trusted; a proposal inherits the WEAKER of that and its item's authoring source. plaud/claude = owner voice/session = trusted. Anything absent here defaults to untrusted (fail-safe: Override B holds it at propose forever).",
+  "provenance_by_source": { "plaud": "trusted", "claude": "trusted" },
+
+  "daily_route_cap": 10,
+  "stale_idle_days": 60,
+
+  "_route_gating_doc": "Producer-side PRECISION filters for route_to_tw candidates (spec 09 §7.1, added 2026-07-25). DETERMINISTIC, no LLM. These ONLY narrow which captured items become individual route proposals; they NEVER touch the gate, needs_human, tiers, trust, bulk_archive_stale, or execution — every emitted row is still status='proposed'/needs_human with can_auto=false at 0% trust. Diagnosis that motivated them: 50% of the captured pool is assignee=other (the producer ignored assignee entirely), and route candidates used the 60d BULK threshold as their freshness window, so month-old already-handled meeting action items were routed. Loosen/tighten here; no code change.",
+  "route_gating": {
+    "route_max_idle_days": 7,
+    "assignees": ["self"],
+    "item_types": ["task"],
+    "min_action_chars": 12,
+    "exclude_action_regexes": [
+      "^\\s*(discuss|align on|talk about|touch base|catch up|sync up|chat about|brainstorm)\\b"
+    ],
+    "tw_dedup": { "enabled": true, "fail_open": true }
+  },
+
+  "_map_doc": "subject-domain (task_queue.domain on the CAPTURED item) -> TW project. A captured item whose domain is not a key here is NOT deterministically routable and is left for the owner (never guessed).",
+  "subject_to_tw_project": {
+    "personal": "personal",
+    "health": "personal",
+    "work": "work",
+    "lifeos": "homelab",
+    "infra": "homelab",
+    "finance": "personal"
+  },
+
+  "_prio_doc": "captured-item priority (1..5) -> TaskWarrior priority (H/M/L). Passthrough of intent, not a re-rank.",
+  "tw_priority_by_row_priority": { "1": "H", "2": "H", "3": "M", "4": "L", "5": "L" },
+
+  "tw_api_url": "http://localhost:8250",
+  "tw_tag_prefix": "mtq",
+
+  "digest": {
+    "header_emoji": "🧭",
+    "title": "Autonomy — proposals",
+    "empty_message": null
+  }
+}

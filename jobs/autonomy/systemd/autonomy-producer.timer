@@ -1,0 +1,10 @@
+[Unit]
+Description=Mimir autonomy producer — daily 03:05 UTC (07:05 Dubai)
+
+[Timer]
+OnCalendar=*-*-* 03:05:00 UTC
+RandomizedDelaySec=120
+Persistent=true
+
+[Install]
+WantedBy=timers.target

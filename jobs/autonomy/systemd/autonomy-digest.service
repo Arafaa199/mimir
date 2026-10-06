@@ -1,0 +1,8 @@
+[Unit]
+Description=Mimir autonomy digest — ONE batched Telegram message of open proposals (approve/reject/snooze)
+OnFailure=homelab-failure-alert@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/bin/autonomy.sh digest
+TimeoutStartSec=120

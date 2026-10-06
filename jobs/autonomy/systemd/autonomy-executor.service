@@ -1,0 +1,8 @@
+[Unit]
+Description=Mimir autonomy executor (task_triage) — execute APPROVED proposals only, audit-first (route_to_tw -> tw-api)
+OnFailure=homelab-failure-alert@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/bin/autonomy.sh executor
+TimeoutStartSec=180

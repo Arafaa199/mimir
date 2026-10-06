@@ -1,0 +1,11 @@
+[Unit]
+Description=Mimir memory spine — shadow-write tail (spec 05 stage C)
+Documentation=file://%h/mimir-memory/README.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/mimir-memory
+ExecStart=%h/mimir-memory/run_on_db_host.sh shadow
+# Skips itself while the backfill holds the spine lock; safe to fire any time.
+TimeoutStartSec=6h
+Nice=10

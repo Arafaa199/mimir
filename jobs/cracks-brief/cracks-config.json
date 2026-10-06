@@ -1,0 +1,111 @@
+{
+  "_doc": "Mimir cracks-brief config (mimir/specs/01-cracks-brief.md). The JUDGMENT lives here: deterministic scoring weights, thresholds, estate/confidence/ownership mapping. Tuning this file needs NO code change — a cheap model may tune the weights. NO LLM ranks items; scoring is pure arithmetic over these numbers. See README.md.",
+  "score_threshold": 45,
+  "caps": {
+    "_doc": "Precision over recall. Total items delivered across all sections, and per-section, are hard-capped. reserve_possibly holds back N of the total slots for top transcript commitments even if high-confidence items would fill the cap (0 = strict spec, high-confidence wins). Bump to 1 during the acceptance test if you want the top 'what did I say I'd do' item to always show. personal_reserved front-loads the top-N personal (by estate) high-confidence items so work tasks can't crowd out every personal crack (0 = no quota).",
+    "total": 7,
+    "per_section": 3,
+    "reserve_possibly": 0,
+    "personal_reserved": 2
+  },
+  "suppression": {
+    "_doc": "Two layers. (1) ops.cracks_dismissed — owner action: plain dismiss hides for dismiss_cooldown_days from dismissed_at; snooze_until hides until that timestamp. (2) resurface hold — AUTOMATIC anti-repetition: an item_key surfaced+delivered in the last resurface_hold_days days is held UNLESS its score rose by >= resurface_score_jump over the max it last surfaced at (so a chronic maxed-out item stops nagging daily, but a genuinely-escalating item still breaks through). resurface_hold_days=0 disables it.",
+    "dismiss_cooldown_days": 7,
+    "resurface_hold_days": 5,
+    "resurface_score_jump": 15
+  },
+  "scoring": {
+    "urgency": {
+      "_doc": "0-40 from due date vs run day. days_until<0 means overdue. Long-dead overdue items decay toward 0 (nagging = noise).",
+      "no_due_date": 6,
+      "far_future_min_days": 15,
+      "far_future": 6,
+      "due_8_14d": 12,
+      "due_4_7d": 25,
+      "due_within_3d_or_overdue": 40,
+      "overdue_peak_max_days": 21,
+      "overdue_decay_zero_days": 60
+    },
+    "staleness": {
+      "_doc": "0-25 from days since last activity. Peaks in the prime crack window (prime_low..prime_high). <fresh_days = still fresh = 0. >abandoned_days = likely abandoned on purpose = abandoned_score.",
+      "max": 25,
+      "fresh_days": 1,
+      "prime_low_days": 3,
+      "prime_high_days": 14,
+      "abandoned_days": 30,
+      "abandoned_score": 8
+    },
+    "importance": {
+      "_doc": "0-25 by kind + keyword/assignee/key-people/priority modifiers. Clamped to 25.",
+      "payment": 22,
+      "payment_urgent_flag_bonus": 3,
+      "deadline_keyword": 20,
+      "reply_owed": 18,
+      "reply_owed_key_person": 25,
+      "work_task": 15,
+      "generic_personal": 10,
+      "urgent_keyword_bonus": 4,
+      "high_triage_confidence_bonus": 3,
+      "high_triage_confidence_at": 0.9,
+      "tw_priority_bonus": { "H": 4, "M": 2, "L": 0 },
+      "ambiguous_owner_factor": 0.7
+    },
+    "actionability": {
+      "_doc": "0-10. Clear one-step resolution still possible vs blocked/awaiting others.",
+      "clear_one_step": 10,
+      "blocked_or_awaiting": 3
+    }
+  },
+  "estate": {
+    "_doc": "Resolve work|personal per item. Priority: explicit project map -> task_queue domain -> content keywords -> default. Fixes plaud commitments that default to domain=personal but are work content. Project names and keywords below are invented examples; replace with your own.",
+    "work_projects": ["acme","acme-health","ledgerly","rostr","erp","work","scheduling","finance","dashboard"],
+    "personal_projects": ["personal","homelab"],
+    "personal_domains": ["lifeos","infra"],
+    "work_content_keywords": ["bacs","payroll","pension","roster","ledgerly","rostr","onboarding","offboarding","grievance","e-rostering","contractor hours","acme","erp","timefold"],
+    "default": "work"
+  },
+  "commitments": {
+    "_doc": "Plaud transcript-commitments (medium confidence, gated to 'possibly'). The crack definition = an obligation the OWNER owes. assignee='self' = owner owes it; 'other'/named people = someone else's obligation (drop). 'unknown' kept but ambiguous-owner-penalized.",
+    "assignee_keep": ["self", "unknown", ""],
+    "assignee_full_weight": ["self"]
+  },
+  "keywords": {
+    "urgent_importance_bump": ["failing","failed","overdue","final notice","suspend","update card","declined","past due","urgent","asap","eod","today","by monday","by friday","deadline"],
+    "reply_owed": ["reply","respond","get back to","follow up","follow-up","email back","call back","reply to","get back","send back","send to","await your"],
+    "blocked_awaiting": ["blocked","awaiting","waiting for","waiting on","pending on","depends on","deferred","once we hear","after we get"]
+  },
+  "key_people": {
+    "_doc": "STUB — owner fills. Names/emails whose replies-owed bump importance to max. Matched case-insensitively against item text.",
+    "names": []
+  },
+  "sources": {
+    "task_queue": { "enabled": true },
+    "finance_payment": { "enabled": true },
+    "tw": {
+      "_doc": "TaskWarrior via tw-api :8250 (on worker). Not PG-resident; fetched here. Candidacy = overdue OR (idle>idle_days_threshold AND no scheduled date) OR due within surface_max_days.",
+      "enabled": true,
+      "api_url": "http://localhost:8250",
+      "idle_days_threshold": 7,
+      "surface_max_days": 21
+    }
+  },
+  "delivery": {
+    "_doc": "Telegram. actionable=true sends DIRECT via sendMessage with one-tap inline buttons (✅ done / 💤 snooze / 🗑 dismiss per item) — cracks_actions.py polls the bot + writes ops.cracks_dismissed (done also closes the tw task). Requires TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID in env; falls back to the notify-only shim if absent. actionable=false = classic shim text. Sections grouped by horizon + a gated 'possibly'.",
+    "channel": "telegram_shim",
+    "actionable": true,
+    "notify_only": false,
+    "header_emoji": "🔎",
+    "empty_message": "🔎 Cracks — {date}\n\nNothing falling through the cracks today. ✨",
+    "section_titles": {
+      "act_today": "⚡ Act today",
+      "this_week": "🗓 This week",
+      "heads_up": "👀 Heads-up",
+      "possibly": "🤔 Possibly (from transcripts — unconfirmed)"
+    }
+  },
+  "phrasing": {
+    "_doc": "Optional CHEAP-model natural-language rewrite of the assembled brief. Presentation ONLY — must NOT re-rank, add, or drop items. OFF by default; enable only after v0 precision is trusted. Never a frontier model.",
+    "enabled": false,
+    "model": "google/gemini-2.5-flash-lite"
+  }
+}

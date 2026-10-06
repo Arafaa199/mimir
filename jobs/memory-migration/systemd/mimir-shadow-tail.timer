@@ -1,0 +1,12 @@
+[Unit]
+Description=Mimir shadow-write tail — one batched pass per day (design law 2)
+
+[Timer]
+# 04:00 UTC = 08:00 Dubai, after cracks-brief (03:30 UTC). Reasoning is one
+# batched digest/day; cognify is periodic batch, never per-write.
+OnCalendar=*-*-* 04:00:00 UTC
+Persistent=true
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,10 @@
+[Unit]
+Description=Mimir autonomy executor — every 30 min (processes only status='approved')
+
+[Timer]
+OnCalendar=*-*-* *:00,30:00 UTC
+RandomizedDelaySec=60
+Persistent=true
+
+[Install]
+WantedBy=timers.target

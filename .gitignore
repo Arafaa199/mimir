@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+*.env
+secrets/
+*.log
+
+# graphify derived code-graph (spec 04) — never commit; encodes paths/structure
+graphify-out/
+.graphify_labels.json
+.graphify_analysis.json
+.graphify_root
+
+# migration working state (corpus, checkpoints, kuzu/cognee roots)
+.state/
+cognee_data/
+cognee_system/
+
+# deployment term lists (real names); ship only the *.example.json
+jobs/memory-migration/estates.json

@@ -1,0 +1,8 @@
+[Unit]
+Description=Mimir cracks-brief — daily "what's falling through the cracks" (PG + tw-api -> deterministic score -> Telegram, notify-only)
+OnFailure=homelab-failure-alert@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/bin/cracks-brief.sh
+TimeoutStartSec=180

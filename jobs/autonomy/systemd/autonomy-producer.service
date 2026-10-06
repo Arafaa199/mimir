@@ -1,0 +1,8 @@
+[Unit]
+Description=Mimir autonomy producer (task_triage) — emit proposals into ops.task_queue (propose-tier; nothing auto-executes)
+OnFailure=homelab-failure-alert@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/bin/autonomy.sh producer
+TimeoutStartSec=180

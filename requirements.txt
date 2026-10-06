@@ -1,0 +1,21 @@
+# Third-party packages imported by the code under jobs/. Pin versions in your own lock file.
+
+# memory-api (recall API, scope kernel)
+fastapi
+pydantic
+uvicorn            # ASGI server for memory-api/api.py
+psycopg2-binary
+requests
+
+# memory spine (memory-migration, memory-spine-bakeoff)
+cognee[postgres-binary]   # install from a checkout pinned to the upstream commit you test against
+litellm
+aiohttp
+fastembed          # bake-off embedding backend; loaded by cognee, not imported directly
+transformers       # tokenizer cognee loads for the nomic engine; not imported directly
+
+# fab (3D print pipeline)
+trimesh            # optional: mesh lint/repair; fab fails open without it
+
+# tests
+pytest

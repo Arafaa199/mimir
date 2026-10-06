@@ -1,0 +1,28 @@
+{
+  "_doc": "Estate term lists for estates.py. Copy to estates.json (gitignored) and replace with your own employer, clients, systems and colleagues. These values are invented examples.",
+  "employer": "initech",
+  "work_vault_component": "Work",
+  "strong": [
+    "acme",
+    "ledgerly",
+    "rostr",
+    "patel",
+    "okafor",
+    "bacs"
+  ],
+  "weak": [
+    "rota",
+    "payroll",
+    "erp",
+    "hcm",
+    "sam"
+  ],
+  "client_terms": [
+    "acme health",
+    "acme",
+    "ledgerly",
+    "rostr",
+    "northgate",
+    "scheduling"
+  ]
+}

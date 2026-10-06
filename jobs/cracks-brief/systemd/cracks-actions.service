@@ -1,0 +1,15 @@
+[Unit]
+Description=Mimir cracks-actions — long-polls the alerts bot for cracks-brief button taps (✅ done / 💤 snooze / 🗑 dismiss -> ops.cracks_dismissed; done also closes the tw task)
+After=network-online.target
+Wants=network-online.target
+OnFailure=homelab-failure-alert@%n.service
+
+[Service]
+Type=simple
+ExecStart=%h/bin/cracks-actions.sh
+Restart=always
+RestartSec=10
+# Long-poll loop; no timeout. One handler only (single getUpdates consumer per bot).
+
+[Install]
+WantedBy=default.target

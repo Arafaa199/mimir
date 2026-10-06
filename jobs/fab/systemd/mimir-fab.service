@@ -1,0 +1,18 @@
+[Unit]
+Description=Mimir voice-to-fabrication service (spec 02) — trust-gated 3D print (Ender-3/Moonraker)
+After=network-online.target docker.service
+OnFailure=homelab-failure-alert@%n.service
+
+[Service]
+Type=simple
+# Pinned: trimesh repair heuristics are hash-order sensitive on non-manifold
+# meshes — an unpinned seed produced two different valid-looking slices of the
+# same broken STL (0.9g vs 3.0g, 2026-07-18). Determinism beats luck.
+Environment=PYTHONHASHSEED=0
+ExecStart=%h/bin/fab.sh
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=30
+
+[Install]
+WantedBy=default.target

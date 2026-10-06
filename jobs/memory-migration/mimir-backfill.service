@@ -1,0 +1,23 @@
+[Unit]
+Description=Mimir memory-spine backfill (spec 05) — resumable, auto-resumes after reboot
+Documentation=file:%h/mimir-memory/README.md
+# network-online is necessary but not sufficient after a power-loss reboot (the tailnet IP
+# lands late); run_on_db_host.sh's `service` path runs its own wait_for_net preflight that
+# blocks until the shim + ollama + DB actually answer, so a too-early start can't recur.
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=%h/mimir-memory
+ExecStart=%h/mimir-memory/run_on_db_host.sh service
+Restart=on-failure
+RestartSec=30
+# The backfill exits 0 when the corpus is fully cognified, and 3 when it hits the metered
+# spend cap — both are clean stops, not failures, so neither should trigger a restart.
+SuccessExitStatus=3
+
+[Install]
+WantedBy=default.target

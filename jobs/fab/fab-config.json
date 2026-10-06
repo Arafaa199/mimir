@@ -1,0 +1,98 @@
+{
+  "_doc": "Mimir voice-to-fabrication config (spec 02). Host: db-host (on-LAN, personal tailnet, always-on). v0 = one printer (Ender-3/Moonraker), both gen paths, trust-gated start_print. All endpoints + exact model IDs are tunable here without code change.",
+  "listen": {
+    "_doc": "Bind the db-host tailnet IP so ONLY the Odin gateway (tailnet) can reach the actuator — NOT 0.0.0.0 (audit finding). FAB_API_KEY is still required (defense in depth). Use 127.0.0.1 to lock to loopback for local-only testing.",
+    "host": "localhost",
+    "port": 8400
+  },
+  "trust": { "domain": "fabrication" },
+  "watch": {
+    "_doc": "Spec 11 gate 6 — post-dispatch print watcher (poll Moonraker, close jobs honestly).",
+    "interval_s": 60,
+    "unreachable_grace_s": 1800,
+    "max_hours": 24
+  },
+  "work_dir": "~/mimir/fab/work",
+  "printers": {
+    "ender3": {
+      "_doc": "Creality Ender-3 V3 KE @ localhost — Klipper/Moonraker :7125. Kept powered OFF between prints (502 when off). api_key: set if Moonraker is not LAN-trusted.",
+      "type": "moonraker",
+      "base_url": "http://localhost:7125",
+      "api_key": null,
+      "bed_mm": [220, 220, 250],
+      "default": true
+    }
+  },
+  "slicer": {
+    "_doc": "PrusaSlicer CLI. Profile picked per material: explicit request override > .loaded_material state file (flip via POST /fab/material on spool swap) > legacy config_ini fallback. An override that contradicts the loaded spool is REFUSED at slice time (slicing PETG on the PLA profile ground the extruder for an evening — 2026-07-18). Profiles are exports of the machine's own proven config — measure the printer, don't trust forums.",
+    "bin": "prusa-slicer",
+    "profiles": {
+      "pla": "~/mimir/fab/profiles/ender3_pla_0.2mm.ini",
+      "petg": "~/mimir/fab/profiles/ender3_petg_0.2mm.ini"
+    },
+    "material_state": "~/mimir/fab/.loaded_material",
+    "config_ini": "~/mimir/fab/profiles/ender3_pla_0.2mm.ini",
+    "extra_args": [],
+    "timeout_s": 300,
+    "materials": {
+      "_doc": "Spec 11 gate 5 — per-material temp windows the gcode linter enforces on EVERY slice. A profile edit can never ship 255C PLA.",
+      "petg": { "nozzle": [230, 260], "bed": [70, 85] },
+      "pla":  { "nozzle": [190, 225], "bed": [50, 70] }
+    },
+    "volume_ratio": [0.08, 1.35],
+    "bed_margin_mm": 5
+  },
+  "openscad": {
+    "_doc": "Headless render. render_cmd wraps xvfb-run for PNG (needs GL); STL export doesn't. LIVE-VERIFY xvfb/OSMesa availability on the host.",
+    "render_cmd": ["xvfb-run", "-a", "openscad"],
+    "render_size": [900, 700],
+    "colorscheme": "Tomorrow",
+    "timeout_s": 120
+  },
+  "generation": {
+    "_doc": "provider=ollama (local, no rate limits, private — hybrid-inference; OpenRouter here is free-tier-only = 402 on paid, 429 on free). For higher-quality functional CAD, point openscad_model at a stronger model with provider=openrouter AND your own OpenRouter key (higher limits). Functional CAD is hard — expect iteration (max_openscad_attempts re-prompts with the render error).",
+    "provider": "ollama",
+    "ollama_url": "http://localhost:11434",
+    "ollama_timeout_s": 300,
+    "classifier_model": "qwen2.5:7b",
+    "openscad_model": "qwen2.5:7b",
+    "max_openscad_attempts": 2,
+    "_provider_note": "local Ollama on worker (qwen2.5:7b) — free/private/no-limit, enabled by the 4GB worker swap (2026-07-08). Swap-backed so gen is slow (~1-2min/part); fine for low volume. For higher CAD quality/speed, flip provider=openrouter with your own funded key, or move inference to a dedicated node (plan M4)."
+  },
+  "meshy": {
+    "_doc": "Decorative path. Requires MESHY_API_KEY (get one at meshy.ai — free tier). Degrades gracefully if the key is absent.",
+    "base_url": "https://api.meshy.ai",
+    "ai_model": "latest",
+    "poll_timeout_s": 300
+  },
+  "embedding": {
+    "_doc": "Model cache vectors — same space as the memory spine (Ollama nomic-embed-text, 768). Falls back to trigram match if unreachable.",
+    "provider": "ollama",
+    "url": "http://localhost:11434",
+    "model": "nomic-embed-text",
+    "dim": 768,
+    "timeout_s": 20
+  },
+  "cache": {
+    "_doc": "Retrieve proven models to skip regeneration. min_similarity = cosine floor for a reuse hit.",
+    "enabled": true,
+    "min_similarity": 0.82
+  },
+  "retrieval": {
+    "_doc": "Retrieval-first: search existing repos for a PROVEN, print-tested community STL instead of gambling on generated geometry. Provider-abstracted; a downloaded STL feeds the same slice->approve->print pipeline. Thingiverse needs THINGIVERSE_TOKEN (free app at thingiverse.com/apps/create). Ranked by downloads*2+likes.",
+    "enabled": true,
+    "limit": 8,
+    "providers": {
+      "thingiverse": { "enabled": true },
+      "printables": { "enabled": false, "_note": "unofficial API — not implemented yet" },
+      "kiln": { "enabled": false, "_note": "MyMiniFactory/Cults3D via Kiln — not implemented yet" }
+    }
+  },
+  "obico": {
+    "_doc": "Obico (self-hosted on db-host, https://obico.example.internal) already does AI print-failure detection + its own alerting on the linked Ender-3 (printer_id 1). We just hand the user its live monitor URL on dispatch — Obico watches independently. Its presence is the 'printer-cam monitoring' half of the prerequisite to later raise the fabrication ceiling propose->bounded (the other half = a home-presence check). API is OAuth2; not needed for the URL handoff.",
+    "enabled": true,
+    "base_url": "https://obico.example.internal",
+    "monitor_path": "/printers/{printer_id}/control/",
+    "printer_id": 1
+  }
+}
